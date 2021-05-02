@@ -1,6 +1,5 @@
 {
 	"liveServer.settings.root": "target/doc",
 	"liveServer.settings.host": "localhost",
-	"editor.wordWrap": "wordWrapColumn",
 	"editor.wrappingIndent": "indent"
 }
