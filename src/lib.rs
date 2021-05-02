@@ -50,7 +50,12 @@
 //!
 //! There's also a basic piece of example code included in `/examples/2d.rs`
 
-use bevy::{input::mouse::MouseMotion, prelude::*};
+use bevy::{
+    input::mouse::MouseMotion,
+    prelude::*,
+    render::camera::Camera,
+    window::{WindowFocused, WindowId},
+};
 use cam2d::camera_2d_movement_system;
 use util::movement_axis;
 
@@ -140,9 +145,14 @@ fn strafe_vector(rotation: &Quat) -> Vec3 {
 fn camera_movement_system(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut FlyCamera, &mut Transform)>,
+    mut query: Query<(&mut FlyCamera, &Camera, &mut Transform)>,
+    focused_window: Res<FocusedWindow>,
 ) {
-    for (mut options, mut transform) in query.iter_mut() {
+    for (mut options, camera, mut transform) in query.iter_mut() {
+        if focused_window.window != Some(camera.window) {
+            continue;
+        }
+
         let (axis_h, axis_v, axis_float) = if options.enabled {
             (
                 movement_axis(&keyboard_input, options.key_right, options.key_left),
@@ -192,7 +202,8 @@ fn camera_movement_system(
 fn mouse_motion_system(
     time: Res<Time>,
     mut mouse_motion_event_reader: EventReader<MouseMotion>,
-    mut query: Query<(&mut FlyCamera, &mut Transform)>,
+    mut query: Query<(&mut FlyCamera, &Camera, &mut Transform)>,
+    focused_window: Res<FocusedWindow>,
 ) {
     let mut delta: Vec2 = Vec2::ZERO;
     for event in mouse_motion_event_reader.iter() {
@@ -202,10 +213,14 @@ fn mouse_motion_system(
         return;
     }
 
-    for (mut options, mut transform) in query.iter_mut() {
+    for (mut options, camera, mut transform) in query.iter_mut() {
         if !options.enabled {
             continue;
         }
+        if focused_window.window != Some(camera.window) {
+            continue;
+        }
+
         options.yaw -= delta.x * options.sensitivity * time.delta_seconds();
         options.pitch += delta.y * options.sensitivity * time.delta_seconds();
 
@@ -217,6 +232,23 @@ fn mouse_motion_system(
 
         transform.rotation = Quat::from_axis_angle(Vec3::Y, yaw_radians)
             * Quat::from_axis_angle(-Vec3::X, pitch_radians);
+    }
+}
+
+#[derive(Default)]
+struct FocusedWindow {
+    pub window: Option<WindowId>,
+}
+
+fn maintain_focused_window(
+    mut focused_window: ResMut<FocusedWindow>,
+    mut events: EventReader<WindowFocused>,
+) {
+    for event in events.iter() {
+        match event.focused {
+            true => focused_window.window = Some(event.id),
+            false => focused_window.window = None,
+        }
     }
 }
 
@@ -235,7 +267,9 @@ pub struct FlyCameraPlugin;
 
 impl Plugin for FlyCameraPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        app.add_system(camera_movement_system.system())
+        app.init_resource::<FocusedWindow>()
+            .add_system(maintain_focused_window.system())
+            .add_system(camera_movement_system.system())
             .add_system(camera_2d_movement_system.system())
             .add_system(mouse_motion_system.system());
     }
