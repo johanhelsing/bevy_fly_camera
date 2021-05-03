@@ -101,6 +101,8 @@ pub struct FlyCamera {
     pub key_up: KeyCode,
     /// Key used to move forward. Defaults to <kbd>LShift</kbd>
     pub key_down: KeyCode,
+    /// If set, only move the camera view if said mouse button is pressed
+    pub only_if_mouse_down: Option<MouseButton>,
     /// If `false`, disable keyboard control of the camera. Defaults to `true`
     pub enabled: bool,
 }
@@ -120,6 +122,7 @@ impl Default for FlyCamera {
             key_right: KeyCode::D,
             key_up: KeyCode::Space,
             key_down: KeyCode::LShift,
+            only_if_mouse_down: None,
             enabled: true,
         }
     }
@@ -204,6 +207,7 @@ fn mouse_motion_system(
     mut mouse_motion_event_reader: EventReader<MouseMotion>,
     mut query: Query<(&mut FlyCamera, &Camera, &mut Transform)>,
     focused_window: Res<FocusedWindow>,
+    mouse_buttons: Res<Input<MouseButton>>,
 ) {
     let mut delta: Vec2 = Vec2::ZERO;
     for event in mouse_motion_event_reader.iter() {
@@ -215,6 +219,12 @@ fn mouse_motion_system(
 
     for (mut options, camera, mut transform) in query.iter_mut() {
         if !options.enabled {
+            continue;
+        }
+        if !options
+            .only_if_mouse_down
+            .map_or(true, |btn| mouse_buttons.pressed(btn))
+        {
             continue;
         }
         if focused_window.window != Some(camera.window) {
