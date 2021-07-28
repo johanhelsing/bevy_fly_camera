@@ -267,7 +267,7 @@ Include this plugin to add the systems for the FlyCamera bundle.
 
 ```no_compile
 fn main() {
-    App::build().add_plugin(FlyCameraPlugin);
+    App::new().add_plugin(FlyCameraPlugin);
 }
 ```
 
@@ -276,7 +276,7 @@ fn main() {
 pub struct FlyCameraPlugin;
 
 impl Plugin for FlyCameraPlugin {
-    fn build(&self, app: &mut AppBuilder) {
+    fn build(&self, app: &mut App) {
         app.init_resource::<FocusedWindow>()
             .add_system(maintain_focused_window.system())
             .add_system(camera_movement_system.system())
