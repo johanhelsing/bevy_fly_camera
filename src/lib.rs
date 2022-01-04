@@ -74,6 +74,7 @@ pub use cam2d::FlyCamera2d;
 ///     .with(FlyCamera::default());
 /// }
 
+#[derive(Component)]
 pub struct FlyCamera {
     /// The speed the FlyCamera accelerates at. Defaults to `1.0`
     pub accel: f32,
